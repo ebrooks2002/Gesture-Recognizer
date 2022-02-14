@@ -13,6 +13,7 @@ import java.util.function.Consumer;
  * The window and user interface for drawing gestures and automatically recognizing them
  * Created by bjackson on 10/29/2016.
  */
+
 public class GestureApp {
 
     private CanvasWindow canvas;
@@ -23,13 +24,17 @@ public class GestureApp {
     private TextField templateNameField;
     private GraphicsText matchLabel;
     private Deque<Point> path;
-
+    private GraphicsGroup drawingLayer;
+    private Drawer drawer;
+    public static Point prevPoint;
 
     public GestureApp(){
         canvas = new CanvasWindow("Gesture Recognizer", 600, 600);
+        drawingLayer = new GraphicsGroup();
         recognizer = new Recognizer();
         path = new ArrayDeque<>();
         ioManager = new IOManager();
+        drawer = new Drawer();
         setupUI();
     }
 
@@ -42,6 +47,7 @@ public class GestureApp {
         canvas.add(matchLabel, 10, 30);
 
         uiGroup = new GraphicsGroup();
+        canvas.add(drawingLayer);
 
         templateNameField = new TextField();
 
@@ -61,7 +67,10 @@ public class GestureApp {
         canvas.onCharacterTyped(handleKeyCommand);
 
         //TODO: Add mouse listeners to allow the user to draw and add the points to the path variable.
-
+        canvas.onMouseMove((event) -> prevPoint=event.getPosition());
+        canvas.onMouseDown(event -> drawingLayer.removeAll());
+        canvas.onMouseDown(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer));;
+        canvas.onDrag(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer));
 
     }
 
