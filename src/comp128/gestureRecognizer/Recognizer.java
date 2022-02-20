@@ -91,28 +91,31 @@ public class Recognizer {
     }
 
     public Deque<Point> resample(Deque<Point> path, int n) {
-        Point pointA = path.peek();
+
+        Point pointA = path.peekLast();
         double pathLength = lineDistance(path);
         double accumDistance = 0;
-        double stepDistance = pathLength / (n-1);
-        ArrayDeque<Point> newPath = new ArrayDeque<>();
-        newPath.addLast(path.pop());
+        double resampleInterval = pathLength / (n - 1);
+        ArrayDeque<Point> resampledPoints = new ArrayDeque<>();
+        resampledPoints.addLast(path.removeLast());
+
         for (Point point : path) {
             double currentDist = pointA.distance(point);
-            while (currentDist + accumDistance >= stepDistance) {
-                Point newPoint = Point.interpolate(point, pointA, (stepDistance - accumDistance)/currentDist);
-                System.out.println(newPoint);
-                newPath.addLast(newPoint);
-                pointA = newPoint;
-                accumDistance = 0;
-                currentDist = pointA.distance(point);
+            if (currentDist + accumDistance >= resampleInterval) {
+                Point resampledPoint = Point.interpolate(point, pointA, (resampleInterval - accumDistance)/currentDist); 
+                resampledPoints.addLast(resampledPoint); 
+                pointA = resampledPoint; 
+                accumDistance = 0; 
             }
-            accumDistance += currentDist;
-            pointA = point;
+            else {
+                accumDistance += currentDist;
+                pointA = point;
+            }
         }
-        if (newPath.size() == n) {
-            newPath.addLast(path.getLast());
+        if (resampledPoints.size() == n-1) {
+            resampledPoints.addLast(path.pop());
         }
-        return newPath;
+        return resampledPoints;
     }
+    
 }
