@@ -6,6 +6,7 @@ import edu.macalester.graphics.ui.Button;
 import edu.macalester.graphics.ui.TextField;
 
 import java.util.ArrayDeque;
+import java.util.Arrays;
 import java.util.Deque;
 import java.util.function.Consumer;
 
@@ -68,19 +69,18 @@ public class GestureApp {
 
         //TODO: Add mouse listeners to allow the user to draw and add the points to the path variable.
         canvas.onMouseMove((event) -> prevPoint=event.getPosition());
-        canvas.onMouseDown(event -> drawingLayer.removeAll());
-        canvas.onMouseDown(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer));;
-        canvas.onDrag(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer));
-
+        canvas.onMouseDown(event -> reset());
+        canvas.onMouseDown(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer, path));;
+        canvas.onDrag(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer, path));
+        canvas.onMouseUp(event -> System.out.println(path));
     }
 
     /**
      * Clears the canvas, but preserves all the UI objects
      */
-    private void removeAllNonUIGraphicsObjects() {
-        canvas.removeAll();
-        canvas.add(matchLabel);
-        canvas.add(uiGroup);
+    private void reset() {
+        path.clear();
+        drawingLayer.removeAll();
     }
 
     /**

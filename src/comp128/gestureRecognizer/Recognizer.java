@@ -5,6 +5,7 @@ import edu.macalester.graphics.Ellipse;
 import edu.macalester.graphics.GraphicsGroup;
 import edu.macalester.graphics.Point;
 
+import java.util.ArrayDeque;
 import java.util.Deque;
 
 /**
@@ -75,13 +76,43 @@ public class Recognizer {
     }
 
     private double pathDistance(Deque<Point> a, Deque<Point> b){
-
         //TODO: implement the method and return the correct distance
         return 0;
     }
 
+    private double lineDistance(Deque<Point> path) {
+        Point pointA = path.peek();
+        double lineDist = 0;
+        for (Point point : path) {
+            lineDist += pointA.distance(point);
+            pointA = point;
+        }
+        return lineDist;
+    }
 
-
-
-
+    public Deque<Point> resample(Deque<Point> path, int n) {
+        Point pointA = path.peek();
+        double pathLength = lineDistance(path);
+        double accumDistance = 0;
+        double stepDistance = pathLength / (n-1);
+        ArrayDeque<Point> newPath = new ArrayDeque<>();
+        newPath.addLast(path.pop());
+        for (Point point : path) {
+            double currentDist = pointA.distance(point);
+            while (currentDist + accumDistance >= stepDistance) {
+                Point newPoint = Point.interpolate(point, pointA, (stepDistance - accumDistance)/currentDist);
+                System.out.println(newPoint);
+                newPath.addLast(newPoint);
+                pointA = newPoint;
+                accumDistance = 0;
+                currentDist = pointA.distance(point);
+            }
+            accumDistance += currentDist;
+            pointA = point;
+        }
+        if (newPath.size() == n) {
+            newPath.addLast(path.getLast());
+        }
+        return newPath;
+    }
 }
