@@ -37,9 +37,9 @@ public class Recognizer {
         // TODO: process the points and add them as a template. Use Decomposition!
     }
 
-    //TODO: Add recognize and other processing methods here
+    
     public Templatematch recognize(Deque<Point> path, ArrayList<Deque<Point>> templates) {
-        double minScore = 1000000;
+        double minScore = 1000000000;
         Deque<Point> closestTemplate = null;
         for (Deque<Point> template : templates){
             double dist = distanceAtBestAngle(path, template);
@@ -88,7 +88,7 @@ public class Recognizer {
     }
 
     private double distanceAtAngle(Deque<Point> points, Deque<Point> templatePoints, double theta){
-        //TODO: Uncomment after rotate method is implemented
+        
         Deque<Point> rotatedPoints = null;
         rotatedPoints = rotateBy(points, theta);
         return pathDistance(rotatedPoints, templatePoints);
@@ -117,8 +117,8 @@ public class Recognizer {
         double pathLength = pathLength(path);
         double accumDistance = 0;
         double stepDistance = pathLength / (n-1);
-        ArrayDeque<Point> newPath = new ArrayDeque<>();
-        newPath.addLast(path.peek());
+        ArrayDeque<Point> resampledPoints = new ArrayDeque<>();
+        resampledPoints.addLast(path.peek());
         Iterator<Point> itr = path.iterator();
         Point prevPoint = itr.next();
         Point currentPoint = itr.next();
@@ -126,7 +126,7 @@ public class Recognizer {
             double currentDist = currentPoint.distance(prevPoint);
             if (currentDist + accumDistance >= stepDistance) {
                 Point newPoint = Point.interpolate(prevPoint, currentPoint, (stepDistance - accumDistance)/currentDist);
-                newPath.addLast(newPoint);
+                resampledPoints.addLast(newPoint);
                 prevPoint = newPoint;
                 accumDistance = 0;
             }
@@ -136,10 +136,10 @@ public class Recognizer {
             currentPoint = itr.next();
             }
         }
-        if (newPath.size() == n-1) {
-            newPath.addLast(path.getLast());
+        if (resampledPoints.size() == n-1) {
+            resampledPoints.addLast(path.getLast());
         }
-        return newPath;
+        return resampledPoints;
     }
 
     public Point centroid(Deque<Point> path) {

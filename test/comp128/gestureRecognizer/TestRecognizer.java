@@ -43,7 +43,7 @@ public class TestRecognizer {
 
        Iterator<Point> it = resampled.iterator();
        double i=0;
-       while (it.hasNext()){
+     while (it.hasNext()){
            Point point = it.next();
            assertEquals(i, point.getX(), 0.01);
            assertEquals(0, point.getY(), 0.01);
@@ -98,8 +98,9 @@ public class TestRecognizer {
            assertEquals(0, point.getY(), 0.001);
            i-=1.0;
        }
+    }
 
-   }
+
 
     @Test
         public void testRotateBy45deg(){
@@ -203,25 +204,26 @@ public class TestRecognizer {
 
        //TODO: Add gestures as templates in your recognizer
        Deque<Point> testGesture = ioManager.loadGesture("arrowTest.xml");
+    
+
        ArrayList<Deque<Point>> templates = new ArrayList<Deque<Point>>();
-       templates.add(testGesture);
+       templates.add(templateGesture);
 
        Templatematch bestMatch = recognizer.recognize(testGesture, templates);
-       
+
+       double score = bestMatch.score;
        //TODO: Recognize the testGesture against the template Gestures.
 
        //TODO: set score to the recognition score.
-       double score = bestMatch.score;
 
-       assertEquals(0.888684, score, 0.001); // testGesture should match against templateGesture with a score of 0.88
-       // If you get 0.89 you are likely rotating by the positive indicative angle rather than the correct negative angle.
+        assertEquals(0.888684, score, 0.001); // testGesture should match against templateGesture with a score of 0.88
+        // If you get 0.89 you are likely rotating by the positive indicative angle rather than the correct negative angle.
+        //TODO: Recognize the template gesture against itself
+        //TODO: set score to the new recognition score
 
-       //TODO: Recognize the template gesture against itself
+        assertEquals(1.0, score, 0.01); // A template matched with itself should be a perfect match
 
-       //TODO: set score to the new recognition score
-       assertEquals(1.0, score, 0.01); // A template matched with itself should be a perfect match
 
-   }
+    }
 }
-
 
