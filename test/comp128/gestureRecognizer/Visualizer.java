@@ -25,20 +25,21 @@ public class Visualizer extends CanvasWindow {
     }
 
     private void visualizeSteps(){
+
         drawPath(originalPoints, Color.BLACK);
 
         int n = 25;
-//        Deque<Point> resampled = recognizer.resample(originalPoints, n);
-//        drawPath(resampled, Color.BLUE);
+        Deque<Point> resampled = recognizer.resample(originalPoints, n);
+        drawPath(resampled, Color.BLUE);
 //
-//        Deque<Point> rotated = recognizer.rotateBy(resampled, -recognizer.indicativeAngle(resampled));
-//        drawPath(rotated, Color.RED);
+       Deque<Point> rotated = recognizer.rotateBy(resampled, -recognizer.indicativeAngle(resampled));
+       drawPath(rotated, Color.RED);
 //
-//        Deque<Point> scaled = recognizer.scaleTo(rotated, 100);
-//        drawPath(scaled, Color.GREEN);
+       Deque<Point> scaled = recognizer.scaleTo(rotated, 100);
+       drawPath(scaled, Color.GREEN);
 //
-//        Deque<Point> translated = recognizer.translateTo(scaled, new Point(0.0,0.0));
-//        drawPath(translated, Color.MAGENTA);
+       Deque<Point> translated = recognizer.translateTo(scaled, new Point(0.0,0.0));
+       drawPath(translated, Color.MAGENTA);
     }
 
     private void drawLegend(){

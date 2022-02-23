@@ -5,8 +5,13 @@ import edu.macalester.graphics.Ellipse;
 import edu.macalester.graphics.GraphicsGroup;
 import edu.macalester.graphics.Point;
 
+import java.lang.reflect.Array;
+import java.util.*;
+
 import java.util.ArrayDeque;
 import java.util.Deque;
+
+import comp128.Templatematch;
 
 /**
  * Recognizer to recognize 2D gestures. Uses the $1 gesture recognition algorithm.
@@ -14,6 +19,7 @@ import java.util.Deque;
 public class Recognizer {
 
     //TODO: add any necessary instance variables here.
+    double size = 200;
 
     /**
      * Constructs a recognizer object
@@ -32,6 +38,19 @@ public class Recognizer {
     }
 
     //TODO: Add recognize and other processing methods here
+    public Templatematch recognize(Deque<Point> path, ArrayList<Deque<Point>> templates) {
+        double minScore = 1000000;
+        Deque<Point> closestTemplate = null;
+        for (Deque<Point> template : templates){
+            double dist = distanceAtBestAngle(path, template);
+            if (dist < minScore) {
+                minScore = dist;
+                closestTemplate = template;
+            }
+        }
+        double score = 1 - (minScore / 0.5 * Math.sqrt(200*200 + 200*200));
+        return new Templatematch(closestTemplate, score);
+    }
 
 
     /**
@@ -71,16 +90,20 @@ public class Recognizer {
     private double distanceAtAngle(Deque<Point> points, Deque<Point> templatePoints, double theta){
         //TODO: Uncomment after rotate method is implemented
         Deque<Point> rotatedPoints = null;
-        // rotatedPoints = rotateBy(points, theta);
+        rotatedPoints = rotateBy(points, theta);
         return pathDistance(rotatedPoints, templatePoints);
     }
 
-    private double pathDistance(Deque<Point> a, Deque<Point> b){
-        //TODO: implement the method and return the correct distance
-        return 0;
+    public double pathDistance(Deque<Point> a, Deque<Point> b){
+        double sum = 0;
+        int aSize = a.size();
+        for (int i = 0; i < aSize; i++) {
+            sum += a.pop().distance(b.pop());
+        }
+        return sum / aSize;
     }
 
-    private double lineDistance(Deque<Point> path) {
+    public double pathLength(Deque<Point> path) {
         Point pointA = path.peek();
         double lineDist = 0;
         for (Point point : path) {
@@ -91,28 +114,106 @@ public class Recognizer {
     }
 
     public Deque<Point> resample(Deque<Point> path, int n) {
-        Point pointA = path.peek();
-        double pathLength = lineDistance(path);
+        double pathLength = pathLength(path);
         double accumDistance = 0;
         double stepDistance = pathLength / (n-1);
         ArrayDeque<Point> newPath = new ArrayDeque<>();
-        newPath.addLast(path.pop());
-        for (Point point : path) {
-            double currentDist = pointA.distance(point);
-            while (currentDist + accumDistance >= stepDistance) {
-                Point newPoint = Point.interpolate(point, pointA, (stepDistance - accumDistance)/currentDist);
-                System.out.println(newPoint);
+        newPath.addLast(path.peek());
+        Iterator<Point> itr = path.iterator();
+        Point prevPoint = itr.next();
+        Point currentPoint = itr.next();
+        while (itr.hasNext()) {
+            double currentDist = currentPoint.distance(prevPoint);
+            if (currentDist + accumDistance >= stepDistance) {
+                Point newPoint = Point.interpolate(prevPoint, currentPoint, (stepDistance - accumDistance)/currentDist);
                 newPath.addLast(newPoint);
-                pointA = newPoint;
+                prevPoint = newPoint;
                 accumDistance = 0;
-                currentDist = pointA.distance(point);
             }
+            else {
             accumDistance += currentDist;
-            pointA = point;
+            prevPoint = currentPoint;
+            currentPoint = itr.next();
+            }
         }
-        if (newPath.size() == n) {
+        if (newPath.size() == n-1) {
             newPath.addLast(path.getLast());
         }
         return newPath;
     }
+
+    public Point centroid(Deque<Point> path) {
+        double x = 0;
+        double y = 0;
+        Iterator itr = path.iterator();
+        while (itr.hasNext()) {
+            Point p = (Point) itr.next();
+            x += p.getX();
+            y += p.getY();
+        }
+        x = x / ((double)path.size());
+        y = y / ((double)path.size());
+        Point centroid = new Point(x,y);
+        return centroid;
+    }
+
+    public double indicativeAngle(Deque<Point> path) {
+        Point centroid  = centroid(path);
+        double indicativeAngle = Math.atan2(centroid.getY() - path.peek().getY(), centroid.getX() - path.peek().getX());
+        return indicativeAngle;
+    }
+
+    public Deque<Point> rotateBy(Deque<Point> path, double angle) {
+        Point centroid = centroid(path);
+        ArrayDeque<Point> newPath = new ArrayDeque<Point>();
+        for (Point point : path) {
+            double x = (point.getX() - centroid.getX()) * Math.cos(angle) - (point.getY() - centroid.getY()) * Math.sin(angle) + centroid.getX();
+            double y = (point.getX() - centroid.getX()) * Math.sin(angle) + (point.getY() - centroid.getY()) * Math.cos(angle) + centroid.getY();
+            newPath.add(new Point(x,y));
+        }
+        return newPath;
+    }
+
+    public Deque<Point> scaleTo(Deque<Point> path, double size) {
+        double maxX = 0;
+        double maxY = 0;
+        double minX = 10000;
+        double minY = 10000;
+        ArrayDeque<Point> newPath = new ArrayDeque<Point>();
+        for (Point point : path) {
+            if (point.getX() > maxX) {
+                maxX = point.getX();
+            }
+            if (point.getY() > maxY) {
+                maxY = point.getY();
+            }
+            if (point.getX() < minX) {
+                minX = point.getX();
+            }
+            if (point.getY() < minY){
+                minY = point.getY();
+            }
+        }
+        double width = maxX - minX;
+        double height = maxY - minY;
+
+        for (Point point: path) {
+            double x = point.getX() * size / width;
+            double y = point.getY() * size / height;
+            newPath.add(new Point(x,y));
+        }
+        return newPath; 
+    }
+
+    public Deque<Point> translateTo(Deque<Point> path, Point k) {
+        ArrayDeque<Point> newPath = new ArrayDeque<Point>();
+        Point centroid = centroid(path);
+        for (Point point : path) {
+            double x = point.getX() + k.getX() - centroid.getX();
+            double y = point.getY() + k.getY() - centroid.getY();
+            newPath.add(new Point(x,y));
+        }
+        return newPath;
+    }
+   
 }

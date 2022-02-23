@@ -3,6 +3,8 @@ package comp128.gestureRecognizer;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import comp128.Templatematch;
+
 import java.util.*;
 
 import edu.macalester.graphics.Point;
@@ -32,8 +34,7 @@ public class TestRecognizer {
     * Tests that points are resampled correctly
     */
    @Test
-   public void testResample(){
-
+   public void testResample() {
        int n = 10;
        Deque<Point> resampled = recognizer.resample(originalPoints, n);
        assertEquals(n, resampled.size()); // resampling should return the correct number of points
@@ -177,9 +178,11 @@ public class TestRecognizer {
 
     // Now try it with a random arrow gesture. Make sure testResample works first or this will be wrong!
     IOManager ioManager = new IOManager();
-    Deque<Point> templateGesture = recognizer.resample(ioManager.loadGesture("arrowTemplate.xml"), 64);
+    
     Deque<Point> testGesture = recognizer.resample(ioManager.loadGesture("arrowTest.xml"), 64);
-    distance = recognizer.pathDistance(templateGesture, testGesture);
+    Deque<Point> templateGesture = recognizer.resample(ioManager.loadGesture("arrowTemplate.xml"), 64);
+    distance = recognizer.pathDistance(testGesture, templateGesture);
+    
     assertEquals(16.577074, distance, 0.000001);
 }
 
@@ -197,19 +200,21 @@ public class TestRecognizer {
        IOManager ioManager = new IOManager();
        Deque<Point> templateGesture = ioManager.loadGesture("arrowTemplate.xml");
        Deque<Point> circleTemplate = ioManager.loadGesture("circleTemplate.xml");
+
        //TODO: Add gestures as templates in your recognizer
-
-
        Deque<Point> testGesture = ioManager.loadGesture("arrowTest.xml");
+       ArrayList<Deque<Point>> templates = new ArrayList<Deque<Point>>();
+       templates.add(testGesture);
+
+       Templatematch bestMatch = recognizer.recognize(testGesture, templates);
+       
        //TODO: Recognize the testGesture against the template Gestures.
 
-
        //TODO: set score to the recognition score.
-       double score = 0;
+       double score = bestMatch.score;
 
        assertEquals(0.888684, score, 0.001); // testGesture should match against templateGesture with a score of 0.88
        // If you get 0.89 you are likely rotating by the positive indicative angle rather than the correct negative angle.
-
 
        //TODO: Recognize the template gesture against itself
 
