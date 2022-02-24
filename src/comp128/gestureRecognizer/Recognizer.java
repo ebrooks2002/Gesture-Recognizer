@@ -1,57 +1,73 @@
+// Ethan Brooks 2/21/2022
 package comp128.gestureRecognizer;
 
-import edu.macalester.graphics.CanvasWindow;
-import edu.macalester.graphics.Ellipse;
-import edu.macalester.graphics.GraphicsGroup;
 import edu.macalester.graphics.Point;
 
-import java.lang.reflect.Array;
 import java.util.*;
 
 import java.util.ArrayDeque;
 import java.util.Deque;
-
-import comp128.Templatematch;
 
 /**
  * Recognizer to recognize 2D gestures. Uses the $1 gesture recognition algorithm.
  */
 public class Recognizer {
 
-    //TODO: add any necessary instance variables here.
-    double size = 200;
+    private double size = 250;
+    private double width;
+    private double height;
+    private ArrayList<Template> templates = new ArrayList<Template>();
 
     /**
      * Constructs a recognizer object
      */
-    public Recognizer(){
+    public Recognizer() {
     }
 
-
+    public int getTemplatesSize() {
+        return templates.size();
+    }
     /**
      * Create a template to use for matching
      * @param name of the template
      * @param points in the template gesture's path
      */
     public void addTemplate(String name, Deque<Point> points){
-        // TODO: process the points and add them as a template. Use Decomposition!
+        Template newTemplate = new Template(name, doSteps(points));
+        templates.add(newTemplate);
     }
-
+    /**
+     * Takes a gesture and resamples, rotates, scales, and tranlates it so it can be compared to templates.
+     * @param points
+     * @return
+     */
+    public Deque<Point> doSteps(Deque<Point> points) {
+        Deque<Point> resampled = resample(points, 64);
+        Deque<Point> rotated = rotateBy(resampled, -indicativeAngle(resampled));
+        Deque<Point> scaled = scaleTo(rotated, size);
+        Deque<Point> translated = translateTo(scaled, new Point(0,0));
+        return translated;
+    }
     
-    public Templatematch recognize(Deque<Point> path, ArrayList<Deque<Point>> templates) {
-        double minScore = 1000000000;
-        Deque<Point> closestTemplate = null;
-        for (Deque<Point> template : templates){
-            double dist = distanceAtBestAngle(path, template);
+    /**
+     * Given a processed gesture, this method compares it to templates and returns the closest match.
+     * @param path
+     * @return
+     */
+    public Templatematch recognize(Deque<Point> path) {
+        double minScore = Double.MAX_VALUE;
+        path = doSteps(path);
+        Template closestTemplate = templates.get(0);
+        for (int i = 0; i < templates.size(); i++){
+            double dist = distanceAtBestAngle(path, templates.get(i).getPath());
             if (dist < minScore) {
                 minScore = dist;
-                closestTemplate = template;
+                closestTemplate = templates.get(i);
             }
         }
-        double score = 1 - (minScore / 0.5 * Math.sqrt(200*200 + 200*200));
-        return new Templatematch(closestTemplate, score);
+        double score = 1 - (minScore / (0.5 * Math.sqrt(size*size + size*size)));
+        return new Templatematch(closestTemplate.getPath(), score, closestTemplate.getName());
     }
-
 
     /**
      * Uses a golden section search to calculate rotation that minimizes the distance between the gesture and the template points.
@@ -63,7 +79,7 @@ public class Recognizer {
         double thetaA = -Math.toRadians(45);
         double thetaB = Math.toRadians(45);
         final double deltaTheta = Math.toRadians(2);
-        double phi = 0.5*(-1.0 + Math.sqrt(5.0));// golden ratio
+        double phi = 0.5*(-1.0 + Math.sqrt(5.0)); //golden ratio
         double x1 = phi*thetaA + (1-phi)*thetaB;
         double f1 = distanceAtAngle(points, templatePoints, x1);
         double x2 = (1 - phi)*thetaA + phi*thetaB;
@@ -87,23 +103,33 @@ public class Recognizer {
         return Math.min(f1, f2);
     }
 
-    private double distanceAtAngle(Deque<Point> points, Deque<Point> templatePoints, double theta){
-        
+    private double distanceAtAngle(Deque<Point> points, Deque<Point> templatePoints, double theta) {
         Deque<Point> rotatedPoints = null;
         rotatedPoints = rotateBy(points, theta);
         return pathDistance(rotatedPoints, templatePoints);
     }
 
-    public double pathDistance(Deque<Point> a, Deque<Point> b){
+    /**
+     * compares each indviudal gesture point to each individual template point, and returns the avg distance btwn points.
+     * @param a
+     * @param b
+     * @return
+     */
+    private double pathDistance(Deque<Point> a, Deque<Point> b){
         double sum = 0;
-        int aSize = a.size();
-        for (int i = 0; i < aSize; i++) {
-            sum += a.pop().distance(b.pop());
+        Iterator<Point> itra = a.iterator();
+        Iterator<Point> itrb = b.iterator();
+        while (itra.hasNext()) {
+            sum += itra.next().distance(itrb.next());
         }
-        return sum / aSize;
+        return sum / a.size();
     }
-
-    public double pathLength(Deque<Point> path) {
+    /**
+     * Finds the total length of the path by summing the distances between consecutive points.
+     * @param path
+     * @return
+     */
+    private double pathLength(Deque<Point> path) {
         Point pointA = path.peek();
         double lineDist = 0;
         for (Point point : path) {
@@ -113,7 +139,13 @@ public class Recognizer {
         return lineDist;
     }
 
-    public Deque<Point> resample(Deque<Point> path, int n) {
+    /**
+     * iterates through path and creates a new path of the same length but with n points.
+     * @param path
+     * @param n
+     * @return
+     */
+    private Deque<Point> resample(Deque<Point> path, int n) {
         double pathLength = pathLength(path);
         double accumDistance = 0;
         double stepDistance = pathLength / (n-1);
@@ -142,7 +174,12 @@ public class Recognizer {
         return resampledPoints;
     }
 
-    public Point centroid(Deque<Point> path) {
+    /**
+     * returns the centroid of a given path.
+     * @param path
+     * @return
+     */
+    private Point centroid(Deque<Point> path) {
         double x = 0;
         double y = 0;
         Iterator itr = path.iterator();
@@ -157,13 +194,24 @@ public class Recognizer {
         return centroid;
     }
 
-    public double indicativeAngle(Deque<Point> path) {
+     /**
+      * returns the indicativeAngle of the path.
+      * @param path
+      * @return
+      */
+    private double indicativeAngle(Deque<Point> path) {
         Point centroid  = centroid(path);
         double indicativeAngle = Math.atan2(centroid.getY() - path.peek().getY(), centroid.getX() - path.peek().getX());
         return indicativeAngle;
     }
 
-    public Deque<Point> rotateBy(Deque<Point> path, double angle) {
+    /**
+     * rotates the given path using the indicative angle.
+     * @param path
+     * @param angle
+     * @return
+     */
+    private Deque<Point> rotateBy(Deque<Point> path, double angle) {
         Point centroid = centroid(path);
         ArrayDeque<Point> newPath = new ArrayDeque<Point>();
         for (Point point : path) {
@@ -174,12 +222,16 @@ public class Recognizer {
         return newPath;
     }
 
-    public Deque<Point> scaleTo(Deque<Point> path, double size) {
+    /**
+     * finds the height and width of a path. (just the range of x and y values.)
+     * @param path
+     * @param size
+     */
+    private void boxSize(Deque<Point> path) {
         double maxX = 0;
         double maxY = 0;
         double minX = 10000;
         double minY = 10000;
-        ArrayDeque<Point> newPath = new ArrayDeque<Point>();
         for (Point point : path) {
             if (point.getX() > maxX) {
                 maxX = point.getX();
@@ -194,9 +246,20 @@ public class Recognizer {
                 minY = point.getY();
             }
         }
-        double width = maxX - minX;
-        double height = maxY - minY;
+        width = maxX - minX;
+        height = maxY - minY;
+    }
 
+    /**
+     * scales the given path to a given size
+     * @param path
+     * @param size
+     * @return
+     */
+    private Deque<Point> scaleTo(Deque<Point> path, double size) {
+        ArrayDeque<Point> newPath = new ArrayDeque<Point>();
+        boxSize(path);
+        
         for (Point point: path) {
             double x = point.getX() * size / width;
             double y = point.getY() * size / height;
@@ -205,7 +268,13 @@ public class Recognizer {
         return newPath; 
     }
 
-    public Deque<Point> translateTo(Deque<Point> path, Point k) {
+    /**
+     * translates the path to the point k.
+     * @param path
+     * @param k
+     * @return
+     */
+    private Deque<Point> translateTo(Deque<Point> path, Point k) {
         ArrayDeque<Point> newPath = new ArrayDeque<Point>();
         Point centroid = centroid(path);
         for (Point point : path) {
@@ -215,5 +284,4 @@ public class Recognizer {
         }
         return newPath;
     }
-   
 }

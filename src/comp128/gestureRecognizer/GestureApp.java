@@ -1,3 +1,4 @@
+//Ethan Brooks 2/21/2022
 package comp128.gestureRecognizer;
 
 import edu.macalester.graphics.*;
@@ -6,7 +7,6 @@ import edu.macalester.graphics.ui.Button;
 import edu.macalester.graphics.ui.TextField;
 
 import java.util.ArrayDeque;
-import java.util.Arrays;
 import java.util.Deque;
 import java.util.function.Consumer;
 
@@ -27,7 +27,7 @@ public class GestureApp {
     private Deque<Point> path;
     private GraphicsGroup drawingLayer;
     private Drawer drawer;
-    public static Point prevPoint;
+    private static Point prevPoint;
 
     public GestureApp(){
         canvas = new CanvasWindow("Gesture Recognizer", 600, 600);
@@ -53,7 +53,7 @@ public class GestureApp {
         templateNameField = new TextField();
 
         addTemplateButton = new Button("Add Template");
-        addTemplateButton.onClick( () -> addTemplate() );
+        
 
         Point center = canvas.getCenter();
         double fieldWidthWithMargin = templateNameField.getSize().getX() + 5;
@@ -67,22 +67,39 @@ public class GestureApp {
         Consumer<Character> handleKeyCommand = ch -> keyTyped(ch);
         canvas.onCharacterTyped(handleKeyCommand);
 
-        //TODO: Add mouse listeners to allow the user to draw and add the points to the path variable.
-        canvas.onMouseMove((event) -> prevPoint=event.getPosition());
-        canvas.onMouseDown(event -> reset());
-        canvas.onMouseDown(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer, path));;
-        canvas.onDrag(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer, path));
-        canvas.onMouseUp(event -> System.out.println(path));
+        mouseEvents();
     }
 
     /**
      * Clears the canvas, but preserves all the UI objects
      */
-    private void reset() {
-        path.clear();
+    private void removallNonUIGraphcisObjects() {
         drawingLayer.removeAll();
+        canvas.add(matchLabel);
     }
 
+    /**
+     * Handles all mouse events, including for buttons and graphicsgroup.
+     */
+    private void mouseEvents() {
+        canvas.onMouseDown(event -> { removallNonUIGraphcisObjects();
+            path.clear();
+             drawer.apply(event.getPosition(), event.getPosition(), drawingLayer, path);
+            });
+        canvas.onDrag(event -> drawer.apply(event.getPosition(), prevPoint, drawingLayer, path));
+        canvas.onMouseUp(event -> findMatch());
+        addTemplateButton.onClick( () -> addTemplate() );
+
+    }
+    /**
+     * If there is already a template in template list, this method matches the most similar template to gesture and displays it.
+     */
+    private void findMatch() { 
+        if (recognizer.getTemplatesSize() != 0) {
+            Templatematch match = recognizer.recognize(recognizer.doSteps(path));
+            matchLabel.setText("Match: " + match.getName() + " " + match.getScore());
+        }
+    }
     /**
      * Handle what happens when the add template button is pressed. This method adds the points stored in path as a template
      * with the name from the templateNameField textbox. If no text has been entered then the template is named with "no name gesture"
@@ -92,8 +109,7 @@ public class GestureApp {
         if (name.isEmpty()){
             name = "no name gesture";
         }
-        recognizer.addTemplate(name, path); // Add the points stored in the path as a template
-
+        recognizer.addTemplate(name, path); 
     }
 
     /**
@@ -122,8 +138,16 @@ public class GestureApp {
             System.out.println("Saved "+name);
         }
     }
-
     public static void main(String[] args){
         GestureApp window = new GestureApp();
     }
+
+    public static Point getPrevPoint() {
+        return prevPoint;
+    }
+
+    public static void setPrevPoint(Point point) {
+        prevPoint = point;
+    }
+
 }
